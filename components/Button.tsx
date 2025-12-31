@@ -48,6 +48,10 @@ export const Button: React.FC<ButtonProps> = ({
     if (onClick) onClick(e);
   };
 
+  // Generate a random delay between 0 and 2.5 seconds to create an "alternating" shine effect
+  // This ensures buttons don't all shine at the exact same millisecond.
+  const randomDelay = React.useMemo(() => `${Math.random() * 2.5}s`, []);
+
   return (
     <button 
       className={`
@@ -60,7 +64,13 @@ export const Button: React.FC<ButtonProps> = ({
       onClick={handleClick}
       {...props}
     >
-      {/* Shine effect overlay */}
+      {/* Shine effect overlay - Animated */}
+      <div 
+        className="shine-overlay" 
+        style={{ animationDelay: randomDelay }}
+      />
+
+      {/* Static Gloss overlay */}
       <div className="absolute top-0 left-0 w-full h-[40%] bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-full"></div>
       
       {icon && <span className="relative z-10 filter drop-shadow-sm">{icon}</span>}

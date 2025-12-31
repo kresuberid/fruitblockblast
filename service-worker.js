@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fruit-block-blast-v4';
+const CACHE_NAME = 'fruit-block-blast-v5';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -70,4 +70,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-    

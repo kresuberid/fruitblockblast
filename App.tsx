@@ -456,10 +456,10 @@ export const App: React.FC = () => {
           <div className="cloud-shape absolute bottom-[-30px] right-[-50px] w-64 h-64"></div>
        </div>
 
-       {/* Top Bar Area - Absolute to keep immersive feel, but ensure z-index */}
-       <div className="absolute top-safe w-full px-4 flex justify-between items-start z-30 pt-4">
-           {/* Install PWA Button (Left) */}
-           <div className="flex flex-col gap-2">
+       {/* Top Bar Area - Absolute to keep immersive feel, but ensure z-index. Added pointer-events-none to prevent blocking clicks. */}
+       <div className="absolute top-safe w-full px-4 flex justify-between items-start z-30 pt-4 pointer-events-none">
+           {/* Install PWA Button (Left) - Added pointer-events-auto */}
+           <div className="flex flex-col gap-2 pointer-events-auto">
              {showInstallButton && (
                 <div className="animate-bounce">
                    <Button size="sm" variant="accent" onClick={handleInstallClick} className="!p-2 !rounded-full shadow-lg">
@@ -469,8 +469,8 @@ export const App: React.FC = () => {
              )}
            </div>
 
-           {/* Right Side: Coins & User */}
-           <div className="flex flex-col gap-2 items-end">
+           {/* Right Side: Coins & User - Added pointer-events-auto */}
+           <div className="flex flex-col gap-2 items-end pointer-events-auto">
                <div 
                  className="bg-black/20 backdrop-blur-md pl-4 pr-1 py-1 rounded-full flex items-center gap-2 border-2 border-white/20 cursor-pointer hover:bg-black/30 transition-colors active:scale-95 shadow-lg"
                  onClick={() => { SoundManager.play('click'); setShowShopModal(true); }}
@@ -496,7 +496,7 @@ export const App: React.FC = () => {
        <div className="absolute top-safe w-full flex justify-center mt-16 z-20 pointer-events-none">
           <button 
             onClick={toggleLanguage}
-            className="bg-white/30 backdrop-blur px-3 py-1 rounded-full text-white font-black text-xs border border-white/40 flex items-center gap-1 hover:bg-white/40 transition-all pointer-events-auto shadow-sm"
+            className="bg-white/30 backdrop-blur px-3 py-1 rounded-full text-white font-black text-xs border border-white/40 flex items-center gap-1 hover:bg-white/40 transition-all pointer-events-auto shadow-sm cursor-pointer active:scale-95"
           >
             <Globe size={12} /> {language}
           </button>
@@ -894,31 +894,6 @@ export const App: React.FC = () => {
     </div>
   );
 
-  const UsernameModal = () => {
-    const [inputValue, setInputValue] = useState(username || "");
-
-    return (
-      <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-[#a855f7]">
-          <h2 className="text-3xl font-black text-[#a855f7] mb-4 font-display text-center">{t.inputName}</h2>
-          
-          <input 
-            type="text"
-            maxLength={12}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value.toUpperCase())}
-            placeholder={t.inputPlaceholder}
-            className="w-full bg-gray-100 border-4 border-gray-300 rounded-2xl px-4 py-3 text-xl font-black text-center text-gray-700 outline-none focus:border-[#a855f7] focus:bg-white transition-colors mb-6 uppercase"
-          />
-
-          <Button variant="start" fullWidth onClick={() => saveUsername(inputValue)}>
-            {t.save}
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   const ShopModal = () => (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-purple-500">
@@ -1062,9 +1037,46 @@ export const App: React.FC = () => {
     </div>
   );
 
+  const UsernameModal = () => {
+    const [inputValue, setInputValue] = useState('');
+    
+    return (
+      <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop border-[8px] border-[#fbbf24]">
+          <User size={60} className="text-[#fbbf24] mb-4" />
+          <h2 className="text-2xl font-black text-[#fbbf24] mb-4 font-display text-center">{t.inputName}</h2>
+          
+          <input 
+            type="text" 
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={t.inputPlaceholder}
+            className="w-full bg-gray-100 border-2 border-gray-300 rounded-xl px-4 py-3 text-lg font-bold mb-6 focus:outline-none focus:border-yellow-400 text-center uppercase"
+            maxLength={12}
+            autoFocus
+          />
+
+          <Button 
+            variant="start" 
+            fullWidth 
+            onClick={() => {
+              if (inputValue.trim().length > 0) {
+                saveUsername(inputValue);
+              } else {
+                SoundManager.play('invalid');
+              }
+            }}
+          >
+            {t.save}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`w-screen h-screen overflow-hidden font-sans select-none text-slate-800 flex items-center justify-center`}>
-      <div className="w-full h-full max-w-[600px] relative shadow-2xl overflow-hidden bg-white">
+      <div className={`w-full h-full max-w-[600px] relative shadow-2xl overflow-hidden ${COLORS.background}`}>
         {screen === 'SPLASH' && renderSplash()}
         {screen === 'HOME' && renderHome()}
         {screen === 'LEVEL_SELECT' && renderLevelSelect()}

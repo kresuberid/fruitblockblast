@@ -155,12 +155,12 @@ export const App: React.FC = () => {
       setShowInstallButton(true);
     });
 
-    // Check permissions on load, if not granted, show modal later
+    // Check permissions on load
     if (Notification.permission === 'default') {
       // We will show the modal after splash
     }
 
-    // Hourly Notification Logic (Simulated for Web)
+    // Hourly Notification Logic
     const notificationInterval = setInterval(() => {
        if (Notification.permission === 'granted') {
           new Notification("Fruit Block Blast", {
@@ -216,7 +216,6 @@ export const App: React.FC = () => {
   const requestPermissions = async () => {
     try {
        await Notification.requestPermission();
-       // "Storage" permission is implicitly granted by using the app, but we simulate the UX
        localStorage.setItem('fbb_permissions_asked', 'true');
        setShowPermissionModal(false);
        if (!username) setShowUsernameModal(true);
@@ -291,10 +290,11 @@ export const App: React.FC = () => {
     MusicManager.start();
   };
 
+  // --- SUPABASE LEADERBOARD LOGIC: ONE USER ONE SCORE ---
   const saveScoreToSupabase = async (score: number) => {
     const user = username || 'PLAYER';
     try {
-      // 1. Check Global Top
+      // 1. Global Top Check for Notification
       const { data: topScoreData } = await supabase
         .from('leaderboard')
         .select('score')
@@ -310,14 +310,16 @@ export const App: React.FC = () => {
         SoundManager.play('win');
       }
 
-      // 2. Upsert Logic
+      // 2. Insert or Update logic (Strict Unique Constraint Handling)
+      // Check if user exists
       const { data: existingUser } = await supabase
          .from('leaderboard')
          .select('id, score')
          .eq('username', user)
-         .single();
+         .maybeSingle(); // Use maybeSingle to handle 0 or 1 row gracefully
 
       if (existingUser) {
+         // Update only if new score is higher
          if (score > existingUser.score) {
             await supabase
                .from('leaderboard')
@@ -325,13 +327,15 @@ export const App: React.FC = () => {
                .eq('id', existingUser.id);
          }
       } else {
+         // Insert new record
+         // If a race condition happens (constraint violation), this might throw error, which we catch
          await supabase
             .from('leaderboard')
             .insert([{ username: user, score: score }]);
       }
       
     } catch (e) {
-      console.error('Connection error:', e);
+      console.error('Connection error or duplicate key ignored:', e);
     }
   };
 
@@ -679,6 +683,98 @@ export const App: React.FC = () => {
 
   // --- Modals ---
 
+  const HighscoreModal = () => {
+    const [leaderboardData, setLeaderboardData] = useState<HighScoreEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchLeaderboard = async () => {
+        setLoading(true);
+        try {
+          // Fetch records. Supabase will return only valid rows.
+          const { data, error } = await supabase
+            .from('leaderboard')
+            .select('username, score')
+            .order('score', { ascending: false })
+            .limit(20);
+
+          if (error) throw error;
+          
+          if (data) {
+             setLeaderboardData(data);
+          }
+        } catch (error) {
+          console.error("Error fetching leaderboard:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      if (showHighscoreModal) {
+        fetchLeaderboard();
+      }
+    }, [showHighscoreModal]);
+
+    const getRankStyle = (idx: number) => {
+        if (idx === 0) return "bg-gradient-to-r from-yellow-200 to-yellow-400 border-yellow-500 ring-4 ring-yellow-200/50 shadow-xl scale-105 my-2";
+        if (idx === 1) return "bg-gradient-to-r from-gray-200 to-gray-300 border-gray-400 ring-2 ring-gray-200/50 shadow-lg";
+        if (idx === 2) return "bg-gradient-to-r from-orange-200 to-orange-300 border-orange-400 ring-2 ring-orange-200/50 shadow-lg";
+        return "bg-white border-blue-100 shadow-sm";
+    };
+
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-[#3b82f6]">
+          <button 
+            onClick={() => setShowHighscoreModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          >
+            <X size={28} />
+          </button>
+
+          <Trophy size={48} className="text-yellow-400 fill-yellow-400 mb-2 drop-shadow-md" />
+          <h2 className="text-3xl font-black text-[#3b82f6] mb-6 font-display candy-text-sm text-center">{t.highScore}</h2>
+          
+          <div className="w-full bg-blue-50 rounded-2xl p-4 mb-6 border-2 border-blue-100 min-h-[300px] overflow-y-auto max-h-[50vh]">
+            {loading ? (
+               <div className="h-full flex flex-col items-center justify-center text-blue-300 gap-2 min-h-[200px]">
+                  <RefreshCw size={32} className="animate-spin" />
+                  <p className="font-bold">{t.loading}</p>
+               </div>
+            ) : leaderboardData.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-blue-300 gap-2 min-h-[200px]">
+                <Award size={32} />
+                <p className="font-bold">{t.noData}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {leaderboardData.map((entry, idx) => (
+                  <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${getRankStyle(idx)}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-white shrink-0 shadow-sm 
+                        ${idx === 0 ? 'bg-yellow-500 text-lg' : idx === 1 ? 'bg-gray-500' : idx === 2 ? 'bg-orange-600' : 'bg-blue-300'}`}>
+                        {idx + 1}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-black truncate max-w-[100px] uppercase ${idx === 0 ? 'text-yellow-900' : 'text-gray-700'}`}>
+                            {entry.username}
+                        </span>
+                        {idx === 0 && <span className="text-[9px] font-bold text-yellow-700 flex items-center gap-1"><Crown size={10} /> RAJA BUAH</span>}
+                      </div>
+                    </div>
+                    <span className={`text-xl font-black ${idx === 0 ? 'text-yellow-800' : 'text-blue-600'}`}>{entry.score}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button variant="secondary" fullWidth onClick={() => setShowHighscoreModal(false)}>{t.close}</Button>
+        </div>
+      </div>
+    );
+  };
+
   const PermissionModal = () => (
     <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
       <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop border-[8px] border-[#a855f7]">
@@ -894,94 +990,6 @@ export const App: React.FC = () => {
       </div>
     </div>
   );
-
-  const HighscoreModal = () => {
-    const [leaderboardData, setLeaderboardData] = useState<HighScoreEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const fetchLeaderboard = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await supabase
-            .from('leaderboard')
-            .select('username, score')
-            .order('score', { ascending: false })
-            .limit(20);
-
-          if (error) throw error;
-          if (data) setLeaderboardData(data);
-        } catch (error) {
-          console.error("Error fetching leaderboard:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      if (showHighscoreModal) {
-        fetchLeaderboard();
-      }
-    }, [showHighscoreModal]);
-
-    const getRankStyle = (idx: number) => {
-        if (idx === 0) return "bg-gradient-to-r from-yellow-200 to-yellow-400 border-yellow-500 ring-4 ring-yellow-200/50 shadow-xl scale-105 my-2";
-        if (idx === 1) return "bg-gradient-to-r from-gray-200 to-gray-300 border-gray-400 ring-2 ring-gray-200/50 shadow-lg";
-        if (idx === 2) return "bg-gradient-to-r from-orange-200 to-orange-300 border-orange-400 ring-2 ring-orange-200/50 shadow-lg";
-        return "bg-white border-blue-100 shadow-sm";
-    };
-
-    return (
-      <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-[#3b82f6]">
-          <button 
-            onClick={() => setShowHighscoreModal(false)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <X size={28} />
-          </button>
-
-          <Trophy size={48} className="text-yellow-400 fill-yellow-400 mb-2 drop-shadow-md" />
-          <h2 className="text-3xl font-black text-[#3b82f6] mb-6 font-display candy-text-sm text-center">{t.highScore}</h2>
-          
-          <div className="w-full bg-blue-50 rounded-2xl p-4 mb-6 border-2 border-blue-100 min-h-[300px] overflow-y-auto max-h-[50vh]">
-            {loading ? (
-               <div className="h-full flex flex-col items-center justify-center text-blue-300 gap-2 min-h-[200px]">
-                  <RefreshCw size={32} className="animate-spin" />
-                  <p className="font-bold">{t.loading}</p>
-               </div>
-            ) : leaderboardData.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-blue-300 gap-2 min-h-[200px]">
-                <Award size={32} />
-                <p className="font-bold">{t.noData}</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {leaderboardData.map((entry, idx) => (
-                  <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${getRankStyle(idx)}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-white shrink-0 shadow-sm 
-                        ${idx === 0 ? 'bg-yellow-500 text-lg' : idx === 1 ? 'bg-gray-500' : idx === 2 ? 'bg-orange-600' : 'bg-blue-300'}`}>
-                        {idx + 1}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={`text-sm font-black truncate max-w-[100px] uppercase ${idx === 0 ? 'text-yellow-900' : 'text-gray-700'}`}>
-                            {entry.username}
-                        </span>
-                        {idx === 0 && <span className="text-[9px] font-bold text-yellow-700 flex items-center gap-1"><Crown size={10} /> RAJA BUAH</span>}
-                      </div>
-                    </div>
-                    <span className={`text-xl font-black ${idx === 0 ? 'text-yellow-800' : 'text-blue-600'}`}>{entry.score}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Button variant="secondary" fullWidth onClick={() => setShowHighscoreModal(false)}>{t.close}</Button>
-        </div>
-      </div>
-    );
-  };
 
   const MusicModal = () => (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">

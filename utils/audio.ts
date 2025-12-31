@@ -186,7 +186,7 @@ export const MusicManager = {
 
   tracks: [
     {
-      name: "Ceria (Standard)",
+      name: "standard",
       style: 'chill',
       wave: 'sine',
       tempo: 250,
@@ -198,7 +198,7 @@ export const MusicManager = {
       ]
     },
     {
-      name: "Semangat (Action)",
+      name: "action",
       style: 'action',
       wave: 'triangle',
       tempo: 160,
@@ -210,7 +210,7 @@ export const MusicManager = {
       ]
     },
     {
-      name: "Santai (Chill)",
+      name: "chill",
       style: 'chill',
       wave: 'sine',
       tempo: 400,
@@ -222,7 +222,7 @@ export const MusicManager = {
       ]
     },
     {
-      name: "Retro 8-Bit",
+      name: "retro",
       style: 'retro',
       wave: 'square',
       tempo: 150,
@@ -234,7 +234,7 @@ export const MusicManager = {
       ]
     },
     {
-      name: "Tegang (Epic)",
+      name: "epic",
       style: 'epic',
       wave: 'triangle',
       tempo: 120, // Fast
@@ -246,7 +246,7 @@ export const MusicManager = {
       ]
     },
     {
-        name: "Pahlawan (Hero)",
+        name: "hero",
         style: 'action',
         wave: 'square',
         tempo: 200,

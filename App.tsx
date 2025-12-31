@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ScreenState, LevelData, Boosters, BoosterType, Character } from './types';
 import { INITIAL_LEVELS, COLORS, CHARACTERS } from './constants';
@@ -155,16 +154,16 @@ export const App: React.FC = () => {
       setShowInstallButton(true);
     });
 
-    // Check permissions on load
-    if (Notification.permission === 'default') {
-      // We will show the modal after splash
-    }
-
     // Hourly Notification Logic
+    // Fix: Read from localStorage or a Ref to ensure we get the latest language in the interval closure
     const notificationInterval = setInterval(() => {
        if (Notification.permission === 'granted') {
+          // Get current lang for notification text directly from storage to avoid stale closure
+          const currentLang = (localStorage.getItem('fbb_lang') as LangType) || 'ID';
+          const notificationText = TRANSLATIONS[currentLang].notificationBody;
+          
           new Notification("Fruit Block Blast", {
-            body: language === 'ID' ? "🏆 Ada skor baru di papan peringkat! Ayo cek!" : "🏆 New high score on leaderboard! Check it out!",
+            body: notificationText,
             icon: '/icon-192.png'
           });
        }
@@ -282,7 +281,7 @@ export const App: React.FC = () => {
   };
 
   const saveUsername = (name: string) => {
-    const cleanName = name.trim().toUpperCase().slice(0, 12) || "PLAYER";
+    const cleanName = name.trim().toUpperCase().slice(0, 12);
     setUsername(cleanName);
     localStorage.setItem('fbb_username', cleanName);
     setShowUsernameModal(false);
@@ -290,11 +289,11 @@ export const App: React.FC = () => {
     MusicManager.start();
   };
 
-  // --- SUPABASE LEADERBOARD LOGIC: ONE USER ONE SCORE ---
+  // --- SUPABASE LEADERBOARD LOGIC: UPSERT (One User One Score) ---
   const saveScoreToSupabase = async (score: number) => {
-    const user = username || 'PLAYER';
+    const user = username || t.defaultPlayerName;
     try {
-      // 1. Global Top Check for Notification
+      // 1. Check Global Top Score for Notification Logic
       const { data: topScoreData } = await supabase
         .from('leaderboard')
         .select('score')
@@ -310,13 +309,19 @@ export const App: React.FC = () => {
         SoundManager.play('win');
       }
 
-      // 2. Insert or Update logic (Strict Unique Constraint Handling)
-      // Check if user exists
+      // 2. UPSERT: Insert or Update if higher
+      // Relies on UNIQUE constraint on 'username' in database
+      // The query below effectively says:
+      // "Insert this row. If username exists, DO NOTHING (ignore)."
+      // Wait, we need to UPDATE if score is higher. 
+      // Supabase .upsert() handles this. We need to fetch current first or rely on Postgres trigger?
+      // Simplest robust method for frontend-only call without custom pg functions:
+      
       const { data: existingUser } = await supabase
          .from('leaderboard')
          .select('id, score')
          .eq('username', user)
-         .maybeSingle(); // Use maybeSingle to handle 0 or 1 row gracefully
+         .maybeSingle();
 
       if (existingUser) {
          // Update only if new score is higher
@@ -328,14 +333,13 @@ export const App: React.FC = () => {
          }
       } else {
          // Insert new record
-         // If a race condition happens (constraint violation), this might throw error, which we catch
          await supabase
             .from('leaderboard')
             .insert([{ username: user, score: score }]);
       }
       
     } catch (e) {
-      console.error('Connection error or duplicate key ignored:', e);
+      console.error('Leaderboard sync error:', e);
     }
   };
 
@@ -429,16 +433,20 @@ export const App: React.FC = () => {
   const renderSplash = () => (
     <div className={`flex flex-col items-center justify-center h-full relative overflow-hidden ${COLORS.background} w-full`}>
        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-       <div className="flex flex-col items-center gap-0 animate-pop">
-          <h1 className="text-6xl font-black text-[#ec4899] candy-text title-outline tracking-wider rotate-[-3deg]">FRUIT</h1>
-          <h1 className="text-6xl font-black text-[#fbbf24] candy-text title-outline tracking-wider rotate-[2deg] -mt-2">BLOCK</h1>
-          <h1 className="text-6xl font-black text-[#3b82f6] candy-text title-outline tracking-wider rotate-[-2deg] -mt-2">BLAST</h1>
+       <div className="flex flex-col items-center justify-center animate-pop">
+           <img 
+               src="https://amfnhqsrjrtcdtslpbas.supabase.co/storage/v1/object/public/images/icon-fruitblockblast.png" 
+               alt="Fruit Block Blast" 
+               className="w-64 h-64 object-contain drop-shadow-2xl filter"
+           />
        </div>
     </div>
   );
 
   const renderHome = () => {
     const activeChar = getSelectedCharacter();
+    // Use Translation Lookup
+    const activeCharName = t.characters[activeChar.id as keyof typeof t.characters]?.name || "Hero";
     
     return (
     <div className={`flex flex-col items-center h-full relative overflow-hidden ${COLORS.background} w-full`}>
@@ -448,122 +456,138 @@ export const App: React.FC = () => {
           <div className="cloud-shape absolute bottom-[-30px] right-[-50px] w-64 h-64"></div>
        </div>
 
-       {/* Top Bar Items */}
-       <div className="absolute top-safe left-4 right-4 flex justify-between items-center z-20">
-           {/* Coin */}
-           <div 
-             className="bg-black/20 backdrop-blur-md pl-4 pr-1 py-1 rounded-full flex items-center gap-2 border-2 border-white/20 cursor-pointer hover:bg-black/30 transition-colors active:scale-95"
-             onClick={() => { SoundManager.play('click'); setShowShopModal(true); }}
-           >
-              <Coins size={20} className="text-yellow-400 fill-yellow-400" />
-              <span className="text-white font-black text-lg mr-2">{coins}</span>
-              <div className="bg-green-500 rounded-full p-1">
-                 <ShoppingCart size={14} className="text-white" />
-              </div>
+       {/* Top Bar Area - Absolute to keep immersive feel, but ensure z-index */}
+       <div className="absolute top-safe w-full px-4 flex justify-between items-start z-30 pt-4">
+           {/* Install PWA Button (Left) */}
+           <div className="flex flex-col gap-2">
+             {showInstallButton && (
+                <div className="animate-bounce">
+                   <Button size="sm" variant="accent" onClick={handleInstallClick} className="!p-2 !rounded-full shadow-lg">
+                      <Download size={20} />
+                   </Button>
+                </div>
+             )}
            </div>
 
-           {/* User */}
-           <div 
-              className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border-2 border-white/20 cursor-pointer hover:bg-black/30 transition-colors active:scale-95"
-              onClick={() => { SoundManager.play('click'); setShowUsernameModal(true); }}
-           >
-              <User size={18} className="text-white" />
-              <span className="text-white font-black text-sm max-w-[100px] truncate">{username || "PLAYER"}</span>
+           {/* Right Side: Coins & User */}
+           <div className="flex flex-col gap-2 items-end">
+               <div 
+                 className="bg-black/20 backdrop-blur-md pl-4 pr-1 py-1 rounded-full flex items-center gap-2 border-2 border-white/20 cursor-pointer hover:bg-black/30 transition-colors active:scale-95 shadow-lg"
+                 onClick={() => { SoundManager.play('click'); setShowShopModal(true); }}
+               >
+                  <Coins size={20} className="text-yellow-400 fill-yellow-400" />
+                  <span className="text-white font-black text-lg mr-2">{coins}</span>
+                  <div className="bg-green-500 rounded-full p-1">
+                     <ShoppingCart size={14} className="text-white" />
+                  </div>
+               </div>
+
+               <div 
+                  className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border-2 border-white/20 cursor-pointer hover:bg-black/30 transition-colors active:scale-95 shadow-lg"
+                  onClick={() => { SoundManager.play('click'); setShowUsernameModal(true); }}
+               >
+                  <User size={18} className="text-white" />
+                  <span className="text-white font-black text-sm max-w-[100px] truncate">{username || t.defaultPlayerName}</span>
+               </div>
            </div>
        </div>
        
-       {/* Lang Switcher - Top Center underneath */}
-       <button 
-         onClick={toggleLanguage}
-         className="absolute top-safe mt-12 z-20 bg-white/30 backdrop-blur px-3 py-1 rounded-full text-white font-black text-xs border border-white/40 flex items-center gap-1 hover:bg-white/40 transition-all"
-       >
-         <Globe size={12} /> {language}
-       </button>
+       {/* Lang Switcher - Top Center Absolute */}
+       <div className="absolute top-safe w-full flex justify-center mt-16 z-20 pointer-events-none">
+          <button 
+            onClick={toggleLanguage}
+            className="bg-white/30 backdrop-blur px-3 py-1 rounded-full text-white font-black text-xs border border-white/40 flex items-center gap-1 hover:bg-white/40 transition-all pointer-events-auto shadow-sm"
+          >
+            <Globe size={12} /> {language}
+          </button>
+       </div>
 
-       {/* Install PWA Button - Floating Left */}
-       {showInstallButton && (
-          <div className="absolute top-safe mt-24 left-4 z-20 animate-bounce">
-             <Button size="sm" variant="accent" onClick={handleInstallClick} className="!p-2 !rounded-full">
-                <Download size={20} />
-             </Button>
-          </div>
-       )}
-
-       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md z-10 relative mt-[-20px]">
-          <div className="flex flex-col items-center gap-0 mb-6 animate-pop hover:scale-105 transition-transform duration-500 cursor-pointer">
-             <h1 className="text-7xl font-black text-[#ec4899] candy-text title-outline drop-shadow-xl rotate-[-3deg] z-30">FRUIT</h1>
-             <h1 className="text-7xl font-black text-[#fbbf24] candy-text title-outline drop-shadow-xl rotate-[2deg] z-20 -mt-5">BLOCK</h1>
-             <h1 className="text-7xl font-black text-[#3b82f6] candy-text title-outline drop-shadow-xl rotate-[-2deg] z-10 -mt-5">BLAST</h1>
+       {/* Main Content Area - Use Flex-1 to fill space between top and bottom */}
+       <div className="flex-1 w-full flex flex-col items-center justify-between z-10 relative px-6 pb-20 pt-28">
+          
+          {/* Logo - Responsive Height (Uses available space) */}
+          <div className="flex-1 flex items-center justify-center min-h-0 w-full mb-4">
+             <img 
+                 src="https://amfnhqsrjrtcdtslpbas.supabase.co/storage/v1/object/public/images/icon-fruitblockblast.png" 
+                 alt="Fruit Block Blast" 
+                 className="max-h-[35vh] w-auto object-contain drop-shadow-2xl filter animate-pop hover:scale-105 transition-transform duration-500 cursor-pointer"
+             />
           </div>
           
-          <div 
-            className="mb-8 cursor-pointer relative group"
-            onClick={() => { SoundManager.play('click'); setShowCharacterModal(true); }}
-          >
-             <div className="absolute inset-0 bg-white/30 rounded-full blur-xl scale-125 animate-pulse group-hover:scale-150 transition-transform"></div>
-             <div className={`w-32 h-32 ${activeChar.color} rounded-3xl flex items-center justify-center shadow-[0_10px_0_rgba(0,0,0,0.2)] border-4 border-white relative transform transition-transform group-hover:-translate-y-2 group-active:translate-y-0 group-active:shadow-none`}>
-                <div className="text-6xl drop-shadow-md z-10 grayscale-0">
-                   {activeChar.icon}
-                </div>
-                <div className="absolute top-[35%] left-[25%] w-2 h-2 bg-black rounded-full z-20 animate-blink"></div>
-                <div className="absolute top-[35%] right-[25%] w-2 h-2 bg-black rounded-full z-20 animate-blink"></div>
-                <div className="absolute -bottom-2 -right-2 text-4xl filter drop-shadow-lg transform rotate-12">{activeChar.accessory}</div>
-                
-                <div className="absolute -top-3 -right-3 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full border-2 border-white animate-bounce">
-                   {t.change}
-                </div>
-             </div>
-             <div className="mt-4 text-center">
-                <div className="bg-black/40 backdrop-blur-sm px-4 py-1 rounded-full border border-white/20 inline-block">
-                   <span className="text-white font-bold text-sm shadow-black drop-shadow-md">{activeChar.name}</span>
-                </div>
-             </div>
-          </div>
-
-          <div className="w-64 mb-10 relative">
-             <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-40 animate-pulse"></div>
-             <Button 
-               variant="start" 
-               size="xl" 
-               onClick={() => { 
-                 SoundManager.play('click'); 
-                 setScreen('LEVEL_SELECT'); 
-               }} 
-               className="w-full shadow-2xl hover:scale-105 active:scale-95 transition-transform z-10"
+          {/* Character Card */}
+          <div className="flex-shrink-0 mb-6 relative group z-20">
+             <div 
+                className="cursor-pointer relative"
+                onClick={() => { SoundManager.play('click'); setShowCharacterModal(true); }}
              >
-               {t.start}
-             </Button>
+                 <div className="absolute inset-0 bg-white/30 rounded-full blur-xl scale-110 animate-pulse group-hover:scale-125 transition-transform"></div>
+                 <div className={`w-28 h-28 ${activeChar.color} rounded-3xl flex items-center justify-center shadow-[0_10px_0_rgba(0,0,0,0.2)] border-4 border-white relative transform transition-transform group-hover:-translate-y-2 group-active:translate-y-0 group-active:shadow-none`}>
+                    <div className="text-5xl drop-shadow-md z-10 grayscale-0">
+                       {activeChar.icon}
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 text-3xl filter drop-shadow-lg transform rotate-12">{activeChar.accessory}</div>
+                    <div className="absolute -top-3 -right-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-white animate-bounce">
+                       {t.change}
+                    </div>
+                 </div>
+             </div>
+             <div className="mt-3 text-center">
+                <div className="bg-black/40 backdrop-blur-sm px-3 py-0.5 rounded-full border border-white/20 inline-block">
+                   <span className="text-white font-bold text-xs shadow-black drop-shadow-md">{activeCharName}</span>
+                </div>
+             </div>
           </div>
 
-          <div className="flex gap-4">
-             <div className="relative">
-                <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowRewardModal(true); }}>
-                    <Gift size={24} className={canClaimReward() ? "animate-bounce" : ""} />
-                </Button>
-                {canClaimReward() && <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />}
+          {/* Start Button & Actions */}
+          <div className="w-full max-w-xs flex flex-col gap-6 flex-shrink-0 mb-safe-bottom">
+             {/* Start Button */}
+             <div className="w-full relative">
+                 <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-40 animate-pulse"></div>
+                 <Button 
+                   variant="start" 
+                   size="xl" 
+                   fullWidth
+                   onClick={() => { 
+                     SoundManager.play('click'); 
+                     setScreen('LEVEL_SELECT'); 
+                   }} 
+                   className="shadow-2xl hover:scale-105 active:scale-95 transition-transform z-10 py-4 text-3xl"
+                 >
+                   {t.start}
+                 </Button>
              </div>
-             
-             <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowHighscoreModal(true); }}>
-                <Trophy size={24} />
-             </Button>
-             
-             <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowShopModal(true); }}>
-                <ShoppingCart size={24} />
-             </Button>
 
-             <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowMusicModal(true); }}>
-                <Music size={24} />
-             </Button>
+             {/* Bottom Action Row */}
+             <div className="flex justify-center gap-3">
+                 <div className="relative">
+                    <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowRewardModal(true); }}>
+                        <Gift size={22} className={canClaimReward() ? "animate-bounce" : ""} />
+                    </Button>
+                    {canClaimReward() && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />}
+                 </div>
+                 
+                 <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowHighscoreModal(true); }}>
+                    <Trophy size={22} />
+                 </Button>
+                 
+                 <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowShopModal(true); }}>
+                    <ShoppingCart size={22} />
+                 </Button>
 
-             <Button variant="icon" size="icon" onClick={toggleAudio}>
-                {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-             </Button>
+                 <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setShowMusicModal(true); }}>
+                    <Music size={22} />
+                 </Button>
+
+                 <Button variant="icon" size="icon" onClick={toggleAudio}>
+                    {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+                 </Button>
+             </div>
           </div>
        </div>
     </div>
     );
   };
-
+  
   const renderLevelSelect = () => (
     <div className={`flex flex-col h-full ${COLORS.background} w-full`}>
       <div className="pt-safe px-6 pb-4 flex items-center justify-between z-10">
@@ -733,7 +757,7 @@ export const App: React.FC = () => {
           </button>
 
           <Trophy size={48} className="text-yellow-400 fill-yellow-400 mb-2 drop-shadow-md" />
-          <h2 className="text-3xl font-black text-[#3b82f6] mb-6 font-display candy-text-sm text-center">{t.highScore}</h2>
+          <h2 className="text-3xl font-black text-[#3b82f6] mb-6 font-display candy-text-sm text-center">{t.kingTitle}</h2>
           
           <div className="w-full bg-blue-50 rounded-2xl p-4 mb-6 border-2 border-blue-100 min-h-[300px] overflow-y-auto max-h-[50vh]">
             {loading ? (
@@ -759,7 +783,7 @@ export const App: React.FC = () => {
                         <span className={`text-sm font-black truncate max-w-[100px] uppercase ${idx === 0 ? 'text-yellow-900' : 'text-gray-700'}`}>
                             {entry.username}
                         </span>
-                        {idx === 0 && <span className="text-[9px] font-bold text-yellow-700 flex items-center gap-1"><Crown size={10} /> RAJA BUAH</span>}
+                        {idx === 0 && <span className="text-[9px] font-bold text-yellow-700 flex items-center gap-1"><Crown size={10} /> {t.kingTitle}</span>}
                       </div>
                     </div>
                     <span className={`text-xl font-black ${idx === 0 ? 'text-yellow-800' : 'text-blue-600'}`}>{entry.score}</span>
@@ -808,6 +832,8 @@ export const App: React.FC = () => {
            {CHARACTERS.map((char) => {
              const isUnlocked = unlockedCharacterIds.includes(char.id);
              const isSelected = selectedCharacterId === char.id;
+             // Use Translation Lookup
+             const displayName = t.characters[char.id as keyof typeof t.characters]?.name || "Hero";
 
              return (
                 <div 
@@ -835,7 +861,7 @@ export const App: React.FC = () => {
                    </div>
                    
                    <div className="text-center w-full">
-                      <div className="text-[9px] font-bold leading-tight truncate px-0.5">{char.name}</div>
+                      <div className="text-[9px] font-bold leading-tight truncate px-0.5">{displayName}</div>
                    </div>
                 </div>
              );
@@ -845,17 +871,22 @@ export const App: React.FC = () => {
         <div className="w-full bg-gray-50 p-3 rounded-xl mt-2 border border-gray-200">
            {(() => {
               const current = CHARACTERS.find(c => c.id === selectedCharacterId);
-              return current ? (
+              if (!current) return null;
+              
+              const displayName = t.characters[current.id as keyof typeof t.characters]?.name || "Hero";
+              const displayDesc = t.characters[current.id as keyof typeof t.characters]?.desc || "Hero";
+
+              return (
                  <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 ${current.color} rounded-lg flex items-center justify-center text-2xl border-2 border-white shadow-sm`}>
                        {current.icon}
                     </div>
                     <div className="flex flex-col">
-                       <span className="font-bold text-sm text-gray-800">{current.name}</span>
-                       <span className="text-xs text-purple-600 font-bold">{current.description}</span>
+                       <span className="font-bold text-sm text-gray-800">{displayName}</span>
+                       <span className="text-xs text-purple-600 font-bold">{displayDesc}</span>
                     </div>
                  </div>
-              ) : null;
+              );
            })()}
         </div>
 
@@ -959,7 +990,7 @@ export const App: React.FC = () => {
 
   const RewardModal = () => (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-yellow-400">
+      <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-green-500">
         <button 
           onClick={() => setShowRewardModal(false)}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -967,24 +998,20 @@ export const App: React.FC = () => {
           <X size={28} />
         </button>
 
-        <div className="relative mb-6">
-           <div className="absolute inset-0 bg-yellow-300 blur-2xl opacity-50 animate-pulse rounded-full"></div>
-           <Gift size={80} className="text-red-500 drop-shadow-lg relative z-10 animate-bounce" />
-        </div>
+        <Gift size={64} className="text-green-500 mb-4 animate-bounce" />
+        <h2 className="text-3xl font-black text-green-500 mb-2 font-display candy-text-sm text-center">{t.rewardTitle}</h2>
         
-        <h2 className="text-3xl font-black text-yellow-500 mb-2 font-display candy-text-sm text-center">{t.rewardTitle}</h2>
-
         {canClaimReward() ? (
-           <Button variant="start" size="lg" fullWidth onClick={claimReward} className="animate-pulse">
-             {t.claim} 200 🪙
-           </Button>
+           <>
+             <p className="text-gray-600 font-bold mb-6 text-center text-lg">+200 🪙</p>
+             <Button variant="primary" fullWidth onClick={claimReward}>
+               {t.claim}
+             </Button>
+           </>
         ) : (
-           <div className="flex flex-col items-center w-full">
-              <div className="bg-gray-100 rounded-xl p-4 w-full text-center mb-4 border-2 border-gray-200">
-                 <p className="text-gray-400 font-bold">{t.claimed}</p>
-                 <p className="text-xs text-gray-400 mt-1">{t.comeBack}</p>
-              </div>
-              <Button variant="secondary" fullWidth onClick={() => setShowRewardModal(false)}>{t.close}</Button>
+           <div className="bg-gray-100 rounded-xl p-4 text-center w-full">
+              <p className="text-gray-500 font-bold mb-1">{t.claimed}</p>
+              <p className="text-gray-400 text-sm">{t.comeBack}</p>
            </div>
         )}
       </div>
@@ -993,7 +1020,7 @@ export const App: React.FC = () => {
 
   const MusicModal = () => (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-green-500">
+      <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-pink-500">
         <button 
           onClick={() => setShowMusicModal(false)}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -1001,28 +1028,36 @@ export const App: React.FC = () => {
           <X size={28} />
         </button>
 
-        <Music size={48} className="text-green-500 fill-green-500 mb-2 drop-shadow-md" />
-        <h2 className="text-3xl font-black text-green-500 mb-6 font-display candy-text-sm text-center">{t.music}</h2>
-        
-        <div className="w-full flex flex-col gap-3 mb-6">
-          {MusicManager.tracks.map((track, idx) => (
-            <button
-              key={idx}
-              onClick={() => selectMusic(idx)}
-              className={`
-                w-full p-4 rounded-xl font-bold text-lg flex justify-between items-center transition-all border-b-4
-                ${currentTrackIdx === idx 
-                  ? 'bg-green-500 text-white border-green-700 shadow-md transform scale-105' 
-                  : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'}
-              `}
-            >
-              <span>{track.name}</span>
-              {currentTrackIdx === idx && <Music size={20} className="animate-bounce" />}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 mb-6">
+           <Music size={32} className="text-pink-500" />
+           <h2 className="text-3xl font-black text-pink-500 font-display candy-text-sm">{t.music}</h2>
         </div>
 
-        <Button variant="secondary" fullWidth onClick={() => setShowMusicModal(false)}>{t.close}</Button>
+        <div className="w-full flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
+           {MusicManager.tracks.map((track, idx) => (
+             <button
+               key={idx}
+               onClick={() => selectMusic(idx)}
+               className={`
+                  w-full p-3 rounded-xl flex items-center justify-between transition-all border-2
+                  ${currentTrackIdx === idx 
+                    ? 'bg-pink-100 border-pink-400 shadow-inner' 
+                    : 'bg-white border-gray-200 hover:bg-gray-50'
+                  }
+               `}
+             >
+                <div className="flex items-center gap-3">
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentTrackIdx === idx ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                      {currentTrackIdx === idx ? <Volume2 size={16} /> : <span className="font-bold text-xs">{idx + 1}</span>}
+                   </div>
+                   <span className={`font-bold ${currentTrackIdx === idx ? 'text-pink-700' : 'text-gray-600'}`}>
+                      {t.tracks[track.name as keyof typeof t.tracks] || track.name}
+                   </span>
+                </div>
+                {currentTrackIdx === idx && <Check size={20} className="text-pink-500" />}
+             </button>
+           ))}
+        </div>
       </div>
     </div>
   );

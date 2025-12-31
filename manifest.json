@@ -10,14 +10,15 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://img.icons8.com/fluency/192/strawberry.png",
+      "src": "https://amfnhqsrjrtcdtslpbas.supabase.co/storage/v1/object/public/images/icon-fruitblockblast.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://img.icons8.com/fluency/512/strawberry.png",
+      "src": "https://amfnhqsrjrtcdtslpbas.supabase.co/storage/v1/object/public/images/icon-fruitblockblast.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ]
 }
+    

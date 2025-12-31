@@ -36,21 +36,20 @@ export interface Boosters {
 export interface LevelData {
   id: number;
   targetScore: number;
-  targetLines: number; // New requirement
+  targetLines: number;
   unlocked: boolean;
   stars: 0 | 1 | 2 | 3;
 }
 
 export interface Character {
   id: string;
-  name: string;
+  // Name and Description removed from type to enforce i18n usage via ID
   price: number;
   icon: string; // Main fruit emoji
   accessory: string; // Weapon/Eye emoji for decoration
   color: string;
   abilityType: 'SCORE' | 'COIN' | 'NONE';
   abilityValue: number; // e.g., 1.1 for 10% boost
-  description: string;
 }
 
 export interface GameStats {

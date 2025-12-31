@@ -44,12 +44,37 @@ export const TRANSLATIONS = {
     permissionTitle: "IZINKAN AKSES",
     permissionDesc: "Untuk pengalaman bermain terbaik, izinkan kami mengakses penyimpanan (untuk offline) dan notifikasi skor.",
     allow: "IZINKAN SEMUA",
+    defaultPlayerName: "PEMAIN",
+    kingTitle: "RAJA BUAH",
+    notificationBody: "🏆 Ada skor baru di papan peringkat! Ayo cek!",
     praise: {
       good: "PINTAR!",
       great: "HEBAT!",
       amazing: "LUAR BIASA!",
       excellent: "ISTIMEWA!",
       allClear: "SAPU BERSIH!"
+    },
+    tracks: {
+      standard: "Ceria (Standar)",
+      action: "Semangat (Aksi)",
+      chill: "Santai",
+      retro: "Retro 8-Bit",
+      epic: "Tegang (Epik)",
+      hero: "Pahlawan"
+    },
+    characters: {
+      c1: { name: "Apel Prajurit", desc: "Prajurit dasar pemberani." },
+      c2: { name: "Nana Ninja", desc: "Gesit dan tersembunyi." },
+      c3: { name: "Penyihir Anggur", desc: "+5% Skor Akhir" },
+      c4: { name: "Tank Melon", desc: "+5% Bonus Koin" },
+      c5: { name: "Pilot Jeruk", desc: "+8% Skor Akhir" },
+      c6: { name: "Petinju Beri", desc: "+8% Bonus Koin" },
+      c7: { name: "Raja Nanas", desc: "+15% Skor Akhir" },
+      c8: { name: "Kiwi Siber", desc: "+15% Bonus Koin" },
+      c9: { name: "Putri Persik", desc: "+20% Skor Akhir" },
+      c10: { name: "Master Naga", desc: "+25% Bonus Koin" },
+      c11: { name: "Beri Galaksi", desc: "+30% Skor Akhir" },
+      c12: { name: "Jagung Emas", desc: "+50% Bonus Koin" }
     }
   },
   EN: {
@@ -94,12 +119,37 @@ export const TRANSLATIONS = {
     permissionTitle: "ALLOW ACCESS",
     permissionDesc: "For the best experience, please allow storage access (for offline play) and score notifications.",
     allow: "ALLOW ALL",
+    defaultPlayerName: "PLAYER",
+    kingTitle: "FRUIT KING",
+    notificationBody: "🏆 New high score on leaderboard! Check it out!",
     praise: {
       good: "GOOD!",
       great: "GREAT!",
       amazing: "AMAZING!",
       excellent: "EXCELLENT!",
       allClear: "ALL CLEAR!"
+    },
+    tracks: {
+      standard: "Cheerful (Standard)",
+      action: "Spirit (Action)",
+      chill: "Chill",
+      retro: "Retro 8-Bit",
+      epic: "Tense (Epic)",
+      hero: "Hero"
+    },
+    characters: {
+      c1: { name: "Apple Soldier", desc: "Brave basic soldier." },
+      c2: { name: "Nana Ninja", desc: "Agile and stealthy." },
+      c3: { name: "Grape Wizard", desc: "+5% Final Score" },
+      c4: { name: "Melon Tank", desc: "+5% Coin Bonus" },
+      c5: { name: "Orange Pilot", desc: "+8% Final Score" },
+      c6: { name: "Berry Boxer", desc: "+8% Coin Bonus" },
+      c7: { name: "Pine King", desc: "+15% Final Score" },
+      c8: { name: "Cyber Kiwi", desc: "+15% Coin Bonus" },
+      c9: { name: "Peach Princess", desc: "+20% Final Score" },
+      c10: { name: "Dragon Master", desc: "+25% Coin Bonus" },
+      c11: { name: "Galaxy Berry", desc: "+30% Final Score" },
+      c12: { name: "Golden Corn", desc: "+50% Coin Bonus" }
     }
   }
 };

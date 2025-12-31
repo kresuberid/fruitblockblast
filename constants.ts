@@ -82,25 +82,25 @@ export const POINTS = {
   ALL_CLEAR: 3000, 
 };
 
-// 12 Characters System
+// 12 Characters System - TEXT REMOVED, Data Only
 export const CHARACTERS: Character[] = [
   // Free Tier
-  { id: 'c1', name: 'Apel Prajurit', price: 0, icon: '🍎', accessory: '⚔️', color: 'bg-red-500', abilityType: 'NONE', abilityValue: 0, description: 'Prajurit dasar pemberani.' },
-  { id: 'c2', name: 'Nana Ninja', price: 0, icon: '🍌', accessory: '🐱', color: 'bg-yellow-400', abilityType: 'NONE', abilityValue: 0, description: 'Gesit dan tersembunyi.' },
+  { id: 'c1', price: 0, icon: '🍎', accessory: '⚔️', color: 'bg-red-500', abilityType: 'NONE', abilityValue: 0 },
+  { id: 'c2', price: 0, icon: '🍌', accessory: '🐱', color: 'bg-yellow-400', abilityType: 'NONE', abilityValue: 0 },
   
   // Tier 1 (Cheap) - Small Boosts
-  { id: 'c3', name: 'Grape Wizard', price: 500, icon: '🍇', accessory: '🔮', color: 'bg-purple-600', abilityType: 'SCORE', abilityValue: 1.05, description: '+5% Skor Akhir' },
-  { id: 'c4', name: 'Melon Tank', price: 500, icon: '🍉', accessory: '🛡️', color: 'bg-green-500', abilityType: 'COIN', abilityValue: 1.05, description: '+5% Bonus Koin' },
-  { id: 'c5', name: 'Orange Pilot', price: 800, icon: '🍊', accessory: '👓', color: 'bg-orange-500', abilityType: 'SCORE', abilityValue: 1.08, description: '+8% Skor Akhir' },
-  { id: 'c6', name: 'Berry Boxer', price: 800, icon: '🍓', accessory: '🥊', color: 'bg-pink-500', abilityType: 'COIN', abilityValue: 1.08, description: '+8% Bonus Koin' },
+  { id: 'c3', price: 500, icon: '🍇', accessory: '🔮', color: 'bg-purple-600', abilityType: 'SCORE', abilityValue: 1.05 },
+  { id: 'c4', price: 500, icon: '🍉', accessory: '🛡️', color: 'bg-green-500', abilityType: 'COIN', abilityValue: 1.05 },
+  { id: 'c5', price: 800, icon: '🍊', accessory: '👓', color: 'bg-orange-500', abilityType: 'SCORE', abilityValue: 1.08 },
+  { id: 'c6', price: 800, icon: '🍓', accessory: '🥊', color: 'bg-pink-500', abilityType: 'COIN', abilityValue: 1.08 },
 
   // Tier 2 (Mid) - Good Boosts
-  { id: 'c7', name: 'Pine King', price: 1500, icon: '🍍', accessory: '👑', color: 'bg-yellow-500', abilityType: 'SCORE', abilityValue: 1.15, description: '+15% Skor Akhir' },
-  { id: 'c8', name: 'Cyber Kiwi', price: 1500, icon: '🥝', accessory: '🤖', color: 'bg-lime-600', abilityType: 'COIN', abilityValue: 1.15, description: '+15% Bonus Koin' },
-  { id: 'c9', name: 'Peach Princess', price: 2000, icon: '🍑', accessory: '💖', color: 'bg-pink-300', abilityType: 'SCORE', abilityValue: 1.20, description: '+20% Skor Akhir' },
+  { id: 'c7', price: 1500, icon: '🍍', accessory: '👑', color: 'bg-yellow-500', abilityType: 'SCORE', abilityValue: 1.15 },
+  { id: 'c8', price: 1500, icon: '🥝', accessory: '🤖', color: 'bg-lime-600', abilityType: 'COIN', abilityValue: 1.15 },
+  { id: 'c9', price: 2000, icon: '🍑', accessory: '💖', color: 'bg-pink-300', abilityType: 'SCORE', abilityValue: 1.20 },
 
   // Tier 3 (Legendary)
-  { id: 'c10', name: 'Dragon Master', price: 3000, icon: '🐉', accessory: '🔥', color: 'bg-red-700', abilityType: 'COIN', abilityValue: 1.25, description: '+25% Bonus Koin' },
-  { id: 'c11', name: 'Galaxy Berry', price: 4000, icon: '🫐', accessory: '✨', color: 'bg-blue-800', abilityType: 'SCORE', abilityValue: 1.30, description: '+30% Skor Akhir' },
-  { id: 'c12', name: 'Golden Corn', price: 5000, icon: '🌽', accessory: '💰', color: 'bg-yellow-300', abilityType: 'COIN', abilityValue: 1.50, description: '+50% Bonus Koin' },
+  { id: 'c10', price: 3000, icon: '🐉', accessory: '🔥', color: 'bg-red-700', abilityType: 'COIN', abilityValue: 1.25 },
+  { id: 'c11', price: 4000, icon: '🫐', accessory: '✨', color: 'bg-blue-800', abilityType: 'SCORE', abilityValue: 1.30 },
+  { id: 'c12', price: 5000, icon: '🌽', accessory: '💰', color: 'bg-yellow-300', abilityType: 'COIN', abilityValue: 1.50 },
 ];

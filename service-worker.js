@@ -1,13 +1,12 @@
 
-const CACHE_NAME = 'fruit-block-blast-v3';
+const CACHE_NAME = 'fruit-block-blast-v4';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   'https://cdn.tailwindcss.com',
   'https://www.transparenttextures.com/patterns/cubes.png',
-  'https://img.icons8.com/fluency/192/strawberry.png',
-  'https://img.icons8.com/fluency/512/strawberry.png'
+  'https://amfnhqsrjrtcdtslpbas.supabase.co/storage/v1/object/public/images/icon-fruitblockblast.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -71,3 +70,4 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+    

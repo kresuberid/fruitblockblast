@@ -5,6 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
+    <!-- Prevent Caching for Index to ensure updates load immediately -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <!-- SEO & Metadata -->
     <title>Fruit Block Blast - Game Puzzle 3D Terbaik</title>
     <meta name="description" content="Mainkan Fruit Block Blast! Game puzzle balok 8x8 yang ceria dengan visual 3D memukau. Cocokkan buah, gunakan booster, dan jadilah juara dunia. Bisa dimainkan Offline!">
@@ -165,12 +170,18 @@
 </head>
   <body>
     <div id="root"></div>
+    
+    <!-- CRITICAL: Main entry point for the React App -->
+    <script type="module" src="./index.tsx"></script>
+
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/service-worker.js')
             .then(registration => {
               console.log('SW registered: ', registration);
+              // Force update check on load
+              registration.update();
             })
             .catch(registrationError => {
               console.log('SW registration failed: ', registrationError);

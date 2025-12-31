@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'fruit-block-blast-v5';
+const CACHE_NAME = 'fruit-block-blast-v6';
 const urlsToCache = [
   '/',
   '/index.html',

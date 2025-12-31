@@ -1,0 +1,23 @@
+
+{
+  "name": "Fruit Block Blast",
+  "short_name": "FruitBlock",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#f0abfc",
+  "theme_color": "#f0abfc",
+  "description": "Mainkan game puzzle buah 3D yang seru dan menantang!",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/192/strawberry.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/512/strawberry.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

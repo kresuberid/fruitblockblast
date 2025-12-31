@@ -132,10 +132,10 @@ The game integrates **Rewarded Video Ads** to monetize non-paying users while en
 ## 🗺️ Roadmap & Maintenance
 
 ### Upcoming Milestones
-1.  **Q3 2024:** Release of Native Android APK on Google Play Store.
-2.  **Q4 2024:** iOS version deployment via TestFlight/App Store.
-3.  **Feature:** Social Login (Google/Apple Sign-In) to sync progress across devices.
-4.  **Feature:** "Endless Mode" for hardcore players.
+1.  **Q3 2025:** Release of Native Android APK on Google Play Store.
+2.  **Q1 2026:** iOS version deployment via TestFlight/App Store.
+3.  **2026 Feature:** Social Login (Google/Apple Sign-In) to sync progress across devices.
+4.  **2026 Feature:** "Endless Mode" for hardcore players with global seasonal rankings.
 
 ### Maintenance
 This project allows for hot-updates via the web deployment pipeline (Vercel). Critical bugs are addressed within 24-48 hours. Leaderboard integrity is monitored weekly via Supabase RLS policies.
@@ -145,7 +145,7 @@ This project allows for hot-updates via the web deployment pipeline (Vercel). Cr
 ## 📄 Metadata & Copyright
 
 **License:**
-Copyright © 2024 Febri Suryanto. All Rights Reserved.
+Copyright © 2025 Febri Suryanto. All Rights Reserved.
 *Unauthorized redistribution, modification, or commercial use of the source code or assets is strictly prohibited without written permission.*
 
 **Contact:**

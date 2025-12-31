@@ -567,7 +567,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ level, bestScore, onWin,
            </button>
          )}
 
-         <div className="flex justify-around items-center h-[12vh] min-h-[90px] mb-4 w-full">
+         <div className="flex justify-around items-center h-[12vh] min-h-[90px] mb-4 w-full max-w-3xl mx-auto">
             {blocks.map(block => (
               <div 
                 key={block.id}

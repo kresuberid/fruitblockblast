@@ -19,8 +19,9 @@ const FloatingBackground = () => {
   const [items, setItems] = useState<Array<{id: number, left: number, delay: number, duration: number, icon: string, size: number}>>([]);
   
   useEffect(() => {
+    // Increase count for larger screens to keep it lively
     const isMobile = window.innerWidth < 768;
-    const count = isMobile ? 12 : 20;
+    const count = isMobile ? 12 : 30;
     const fruits = ['🍎', '🍌', '🍇', '🍉', '🍍', '🍓', '🍊', '🍒', '🥝'];
     
     const newItems = Array.from({ length: count }, (_, i) => {
@@ -60,6 +61,359 @@ const FloatingBackground = () => {
     </div>
   );
 };
+
+// --- Modal Components ---
+
+interface RewardModalProps {
+  onClaim: () => void;
+  onClose: () => void;
+  canClaim: boolean;
+  t: any;
+}
+const RewardModal: React.FC<RewardModalProps> = ({ onClaim, onClose, canClaim, t }) => (
+  <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="bg-[#a855f7] rounded-[32px] p-6 w-full max-w-sm flex flex-col items-center gap-4 shadow-2xl border-[6px] border-white animate-pop">
+      <div className="bg-yellow-400 p-4 rounded-full border-4 border-white shadow-lg mb-2">
+        <Gift size={48} className="text-white drop-shadow-md" />
+      </div>
+      <h2 className="text-3xl font-black text-white uppercase drop-shadow-md">{t.rewardTitle}</h2>
+      
+      {canClaim ? (
+        <div className="text-center space-y-4 w-full">
+           <p className="text-purple-100 font-bold text-lg">{t.freeCoins} <span className="text-yellow-300">200 🪙</span></p>
+           <Button fullWidth size="lg" variant="accent" onClick={onClaim}>{t.claim}</Button>
+        </div>
+      ) : (
+        <div className="text-center space-y-4 w-full opacity-80">
+           <p className="text-purple-200 font-bold">{t.claimed}</p>
+           <p className="text-white font-black text-xl">{t.comeBack}</p>
+           <Button fullWidth variant="secondary" onClick={onClose}>{t.close}</Button>
+        </div>
+      )}
+      {canClaim && (
+         <button onClick={onClose} className="absolute top-4 right-4 text-white/60 hover:text-white">
+           <X size={24} />
+         </button>
+      )}
+    </div>
+  </div>
+);
+
+interface HighscoreModalProps {
+  onClose: () => void;
+  t: any;
+}
+const HighscoreModal: React.FC<HighscoreModalProps> = ({ onClose, t }) => {
+  const [scores, setScores] = useState<HighScoreEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchScores = async () => {
+      const { data } = await supabase
+        .from('leaderboard')
+        .select('username, score')
+        .order('score', { ascending: false })
+        .limit(10);
+      if (data) setScores(data);
+      setLoading(false);
+    };
+    fetchScores();
+  }, []);
+
+  return (
+    <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#a855f7] rounded-[32px] p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl border-[6px] border-white animate-pop h-[60vh]">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-black text-white uppercase drop-shadow-md flex items-center gap-2">
+            <Trophy className="text-yellow-300" /> {t.highScore}
+          </h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white">
+            <X size={24} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto bg-black/20 rounded-xl p-2 space-y-2">
+           {loading ? (
+             <div className="text-white/50 text-center py-8">{t.loading}</div>
+           ) : scores.length === 0 ? (
+             <div className="text-white/50 text-center py-8">{t.noData}</div>
+           ) : (
+             scores.map((s, i) => (
+               <div key={i} className="flex justify-between items-center bg-white/10 p-3 rounded-lg border border-white/5">
+                  <div className="flex items-center gap-3">
+                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black border-2 ${i===0 ? 'bg-yellow-400 border-yellow-200 text-yellow-900' : i===1 ? 'bg-slate-300 border-slate-100 text-slate-900' : i===2 ? 'bg-orange-400 border-orange-200 text-orange-900' : 'bg-purple-800 border-purple-600 text-purple-200'}`}>
+                        {i+1}
+                     </div>
+                     <span className="text-white font-bold truncate max-w-[120px]">{s.username}</span>
+                  </div>
+                  <span className="text-yellow-300 font-black">{s.score}</span>
+               </div>
+             ))
+           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface MusicModalProps {
+  onClose: () => void;
+  currentTrackIdx: number;
+  onSelect: (idx: number) => void;
+  t: any;
+}
+const MusicModal: React.FC<MusicModalProps> = ({ onClose, currentTrackIdx, onSelect, t }) => (
+  <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#a855f7] rounded-[32px] p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl border-[6px] border-white animate-pop">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-black text-white uppercase drop-shadow-md flex items-center gap-2">
+            <Music className="text-pink-300" /> {t.music}
+          </h2>
+          <button onClick={onClose} className="text-white/60 hover:text-white">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+           {MusicManager.tracks.map((track, i) => (
+             <button
+               key={i}
+               onClick={() => onSelect(i)}
+               className={`w-full p-4 rounded-xl flex items-center justify-between border-b-4 transition-all ${currentTrackIdx === i ? 'bg-white text-purple-900 border-purple-200' : 'bg-purple-800 text-white border-purple-900 hover:bg-purple-700'}`}
+             >
+                <div className="flex items-center gap-3">
+                   {currentTrackIdx === i ? <Volume2 size={20} className="text-green-500" /> : <span className="w-5" />}
+                   <span className="font-bold">{t.tracks[track.name as keyof typeof t.tracks] || track.name}</span>
+                </div>
+                {currentTrackIdx === i && <Check size={20} className="text-green-500" />}
+             </button>
+           ))}
+        </div>
+      </div>
+  </div>
+);
+
+interface ShopModalProps {
+  onClose: () => void;
+  coins: number;
+  boosters: Boosters;
+  onBuy: (type: BoosterType) => boolean;
+  onWatchAd: () => void;
+  t: any;
+}
+const ShopModal: React.FC<ShopModalProps> = ({ onClose, coins, boosters, onBuy, onWatchAd, t }) => {
+  const ITEMS = [
+    { id: 'HAMMER', icon: <Hammer />, price: 100, desc: t.hammerDesc, name: t.hammer, color: 'text-blue-400' },
+    { id: 'SHUFFLE', icon: <Shuffle />, price: 150, desc: t.shuffleDesc, name: t.shuffle, color: 'text-green-400' },
+    { id: 'BOMB', icon: <Bomb />, price: 200, desc: t.bombDesc, name: t.bomb, color: 'text-red-400' },
+  ];
+
+  return (
+    <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#a855f7] rounded-[32px] p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl border-[6px] border-white animate-pop h-[70vh]">
+         <div className="flex justify-between items-center bg-black/20 p-3 rounded-2xl">
+            <div className="flex items-center gap-2">
+               <Coins className="text-yellow-400 fill-yellow-400" />
+               <span className="text-2xl font-black text-white">{coins}</span>
+            </div>
+            <button onClick={onClose} className="bg-white/20 p-2 rounded-full text-white hover:bg-white/30">
+               <X size={20} />
+            </button>
+         </div>
+
+         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+             <div className="bg-white/10 p-4 rounded-2xl flex items-center justify-between border border-white/10">
+                <div className="flex items-center gap-3">
+                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white">
+                      <Video size={24} />
+                   </div>
+                   <div>
+                      <div className="font-black text-white text-sm">{t.freeCoins}</div>
+                      <div className="text-xs text-white/70">+50 🪙</div>
+                   </div>
+                </div>
+                <Button size="sm" variant="accent" onClick={onWatchAd}>{t.watchAd}</Button>
+             </div>
+
+             {ITEMS.map((item) => (
+                <div key={item.id} className="bg-white p-4 rounded-2xl border-b-[6px] border-purple-200 shadow-sm">
+                   <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-3">
+                         <div className={`text-3xl ${item.color}`}>{item.icon}</div>
+                         <div>
+                            <div className="font-black text-purple-900 leading-tight">{item.name}</div>
+                            <div className="text-[10px] text-purple-600 font-bold">{t.buy} {boosters[item.id as BoosterType]}</div>
+                         </div>
+                      </div>
+                      <div className="bg-yellow-100 px-2 py-1 rounded-lg border border-yellow-300">
+                         <span className="font-black text-yellow-700 text-sm flex items-center gap-1">
+                            {item.price} <Coins size={12} />
+                         </span>
+                      </div>
+                   </div>
+                   <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-slate-500 font-medium">{item.desc}</span>
+                      <Button 
+                         size="sm" 
+                         variant={coins >= item.price ? 'primary' : 'secondary'} 
+                         onClick={() => onBuy(item.id as BoosterType)}
+                         className={coins < item.price ? 'opacity-50' : ''}
+                      >
+                         +1
+                      </Button>
+                   </div>
+                </div>
+             ))}
+         </div>
+      </div>
+    </div>
+  );
+};
+
+interface UsernameModalProps {
+  onSave: (name: string) => void;
+  currentName: string;
+  t: any;
+  onClose: () => void;
+}
+const UsernameModal: React.FC<UsernameModalProps> = ({ onSave, currentName, t, onClose }) => {
+  const [name, setName] = useState(currentName);
+
+  return (
+    <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+       <div className="bg-[#a855f7] rounded-[32px] p-8 w-full max-w-sm flex flex-col items-center gap-6 shadow-2xl border-[6px] border-white animate-pop">
+          <div className="bg-white p-4 rounded-full shadow-lg">
+             <User size={48} className="text-purple-600" />
+          </div>
+          <h2 className="text-2xl font-black text-white text-center">{t.inputName}</h2>
+          
+          <input 
+            type="text" 
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t.inputPlaceholder}
+            className="w-full px-6 py-4 rounded-2xl text-center font-black text-xl border-4 border-purple-300 focus:border-yellow-400 outline-none uppercase text-purple-900 placeholder:text-purple-300"
+            maxLength={12}
+          />
+
+          <div className="flex gap-2 w-full">
+            {currentName && (
+               <Button variant="secondary" onClick={onClose} className="flex-1">
+                  <X size={24} />
+               </Button>
+            )}
+            <Button fullWidth variant="primary" onClick={() => onSave(name)} disabled={!name.trim()}>
+              {t.save}
+            </Button>
+          </div>
+       </div>
+    </div>
+  );
+};
+
+interface CharacterModalProps {
+  onClose: () => void;
+  characters: Character[];
+  unlockedIds: string[];
+  selectedId: string;
+  coins: number;
+  onUnlock: (id: string, price: number) => boolean;
+  onSelect: (id: string) => void;
+  t: any;
+}
+const CharacterModal: React.FC<CharacterModalProps> = ({ onClose, characters, unlockedIds, selectedId, coins, onUnlock, onSelect, t }) => {
+  return (
+     <div className="absolute inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-[#a855f7] rounded-[32px] p-4 w-full max-w-md flex flex-col gap-4 shadow-2xl border-[6px] border-white animate-pop h-[80vh]">
+           <div className="flex justify-between items-center px-2">
+              <h2 className="text-2xl font-black text-white uppercase drop-shadow-md flex items-center gap-2">
+                <Crown className="text-yellow-300" /> {t.selectChar}
+              </h2>
+              <button onClick={onClose} className="text-white/60 hover:text-white">
+                <X size={24} />
+              </button>
+           </div>
+           
+           <div className="flex justify-center bg-black/20 rounded-xl p-2 mb-2">
+              <div className="flex items-center gap-2 text-yellow-300 font-black">
+                 <Coins size={20} className="fill-yellow-300" /> {coins}
+              </div>
+           </div>
+
+           <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-3 p-1">
+              {characters.map(char => {
+                 const isUnlocked = unlockedIds.includes(char.id);
+                 const isSelected = selectedId === char.id;
+                 const charInfo = t.characters[char.id as keyof typeof t.characters];
+                 
+                 return (
+                    <div 
+                      key={char.id}
+                      onClick={() => {
+                        if (isUnlocked) onSelect(char.id);
+                        else onUnlock(char.id, char.price);
+                      }}
+                      className={`
+                        relative rounded-2xl p-3 flex flex-col items-center gap-2 border-b-[4px] transition-all cursor-pointer
+                        ${isSelected ? 'bg-white border-yellow-400 ring-2 ring-yellow-300' : 'bg-purple-800 border-purple-900'}
+                        ${!isUnlocked && 'opacity-90'}
+                      `}
+                    >
+                       <div className={`w-16 h-16 ${char.color} rounded-2xl flex items-center justify-center border-2 border-white/20 shadow-md relative`}>
+                          <span className="text-3xl filter drop-shadow-sm">{char.icon}</span>
+                          <span className="absolute -bottom-1 -right-1 text-xl">{char.accessory}</span>
+                          {!isUnlocked && (
+                             <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center backdrop-blur-[1px]">
+                                <LockIcon size={24} className="text-white" />
+                             </div>
+                          )}
+                       </div>
+                       
+                       <div className="text-center w-full">
+                          <div className={`font-black text-sm leading-tight ${isSelected ? 'text-purple-900' : 'text-white'}`}>{charInfo?.name}</div>
+                          <div className={`text-[10px] font-bold leading-tight mt-0.5 ${isSelected ? 'text-purple-600' : 'text-white/60'}`}>{charInfo?.desc}</div>
+                       </div>
+
+                       {!isUnlocked && (
+                          <div className="mt-1 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-sm">
+                             {char.price} <Coins size={10} />
+                          </div>
+                       )}
+                       {isSelected && (
+                          <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full shadow-sm">
+                             <Check size={12} strokeWidth={4} />
+                          </div>
+                       )}
+                    </div>
+                 );
+              })}
+           </div>
+        </div>
+     </div>
+  );
+};
+
+interface PermissionModalProps {
+  onRequest: () => void;
+  t: any;
+  onClose: () => void;
+}
+const PermissionModal: React.FC<PermissionModalProps> = ({ onRequest, t, onClose }) => (
+   <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+       <div className="bg-[#a855f7] rounded-[32px] p-8 w-full max-w-sm flex flex-col items-center gap-6 shadow-2xl border-[6px] border-white animate-pop text-center">
+          <div className="bg-blue-500 p-4 rounded-full shadow-lg border-4 border-white">
+             <Bell size={48} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white mb-2">{t.permissionTitle}</h2>
+            <p className="text-purple-100 text-sm leading-relaxed">{t.permissionDesc}</p>
+          </div>
+          
+          <Button fullWidth size="lg" variant="primary" onClick={onRequest}>{t.allow}</Button>
+          <button onClick={onClose} className="text-white/50 text-xs font-bold underline mt-2">{t.close}</button>
+       </div>
+    </div>
+);
 
 export const App: React.FC = () => {
   const [screen, setScreen] = useState<ScreenState>('SPLASH');
@@ -155,7 +509,6 @@ export const App: React.FC = () => {
     });
 
     // Hourly Notification Logic
-    // Fix: Read from localStorage or a Ref to ensure we get the latest language in the interval closure
     const notificationInterval = setInterval(() => {
        if (Notification.permission === 'granted') {
           // Get current lang for notification text directly from storage to avoid stale closure
@@ -289,7 +642,6 @@ export const App: React.FC = () => {
     MusicManager.start();
   };
 
-  // --- SUPABASE LEADERBOARD LOGIC: UPSERT (One User One Score) ---
   const saveScoreToSupabase = async (score: number) => {
     const user = username || t.defaultPlayerName;
     try {
@@ -309,14 +661,7 @@ export const App: React.FC = () => {
         SoundManager.play('win');
       }
 
-      // 2. UPSERT: Insert or Update if higher
-      // Relies on UNIQUE constraint on 'username' in database
-      // The query below effectively says:
-      // "Insert this row. If username exists, DO NOTHING (ignore)."
-      // Wait, we need to UPDATE if score is higher. 
-      // Supabase .upsert() handles this. We need to fetch current first or rely on Postgres trigger?
-      // Simplest robust method for frontend-only call without custom pg functions:
-      
+      // 2. UPSERT
       const { data: existingUser } = await supabase
          .from('leaderboard')
          .select('id, score')
@@ -324,7 +669,6 @@ export const App: React.FC = () => {
          .maybeSingle();
 
       if (existingUser) {
-         // Update only if new score is higher
          if (score > existingUser.score) {
             await supabase
                .from('leaderboard')
@@ -332,7 +676,6 @@ export const App: React.FC = () => {
                .eq('id', existingUser.id);
          }
       } else {
-         // Insert new record
          await supabase
             .from('leaderboard')
             .insert([{ username: user, score: score }]);
@@ -431,7 +774,7 @@ export const App: React.FC = () => {
 
   // --- Screens ---
   const renderSplash = () => (
-    <div className={`flex flex-col items-center justify-center h-full relative overflow-hidden ${COLORS.background} w-full`}>
+    <div className={`flex flex-col items-center justify-center h-full relative overflow-hidden w-full`}>
        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
        <div className="flex flex-col items-center justify-center animate-pop">
            <img 
@@ -445,20 +788,19 @@ export const App: React.FC = () => {
 
   const renderHome = () => {
     const activeChar = getSelectedCharacter();
-    // Use Translation Lookup
     const activeCharName = t.characters[activeChar.id as keyof typeof t.characters]?.name || "Hero";
     
     return (
-    <div className={`flex flex-col items-center h-full relative overflow-hidden ${COLORS.background} w-full`}>
+    <div className={`flex flex-col items-center h-full relative overflow-hidden w-full`}>
        <FloatingBackground />
        <div className="absolute bottom-0 w-full h-48 pointer-events-none z-0">
           <div className="cloud-shape absolute bottom-[-50px] left-[-50px] w-60 h-60"></div>
           <div className="cloud-shape absolute bottom-[-30px] right-[-50px] w-64 h-64"></div>
        </div>
 
-       {/* Top Bar Area - Absolute to keep immersive feel, but ensure z-index. Added pointer-events-none to prevent blocking clicks. */}
+       {/* Top Bar Area */}
        <div className="absolute top-safe w-full px-4 flex justify-between items-start z-30 pt-4 pointer-events-none">
-           {/* Install PWA Button (Left) - Added pointer-events-auto */}
+           {/* Install PWA Button (Left) */}
            <div className="flex flex-col gap-2 pointer-events-auto">
              {showInstallButton && (
                 <div className="animate-bounce">
@@ -469,7 +811,7 @@ export const App: React.FC = () => {
              )}
            </div>
 
-           {/* Right Side: Coins & User - Added pointer-events-auto */}
+           {/* Right Side: Coins & User */}
            <div className="flex flex-col gap-2 items-end pointer-events-auto">
                <div 
                  className="bg-black/20 backdrop-blur-md pl-4 pr-1 py-1 rounded-full flex items-center gap-2 border-2 border-white/20 cursor-pointer hover:bg-black/30 transition-colors active:scale-95 shadow-lg"
@@ -492,7 +834,7 @@ export const App: React.FC = () => {
            </div>
        </div>
        
-       {/* Lang Switcher - Top Center Absolute */}
+       {/* Lang Switcher */}
        <div className="absolute top-safe w-full flex justify-center mt-16 z-20 pointer-events-none">
           <button 
             onClick={toggleLanguage}
@@ -502,10 +844,10 @@ export const App: React.FC = () => {
           </button>
        </div>
 
-       {/* Main Content Area - Use Flex-1 to fill space between top and bottom */}
-       <div className="flex-1 w-full flex flex-col items-center justify-between z-10 relative px-6 pb-20 pt-28">
+       {/* Main Content Area */}
+       <div className="flex-1 w-full flex flex-col items-center justify-between z-10 relative px-6 pb-20 pt-28 max-w-lg mx-auto">
           
-          {/* Logo - Responsive Height (Uses available space) */}
+          {/* Logo */}
           <div className="flex-1 flex items-center justify-center min-h-0 w-full mb-4">
              <img 
                  src="https://amfnhqsrjrtcdtslpbas.supabase.co/storage/v1/object/public/images/icon-fruitblockblast.png" 
@@ -589,7 +931,7 @@ export const App: React.FC = () => {
   };
   
   const renderLevelSelect = () => (
-    <div className={`flex flex-col h-full ${COLORS.background} w-full`}>
+    <div className={`flex flex-col h-full w-full`}>
       <div className="pt-safe px-6 pb-4 flex items-center justify-between z-10">
         <Button variant="icon" size="icon" onClick={() => { SoundManager.play('click'); setScreen('HOME'); }}>
            <Menu size={24} />
@@ -598,7 +940,7 @@ export const App: React.FC = () => {
         <div className="w-12"></div> 
       </div>
       <div className="flex-1 overflow-y-auto px-6 py-4 pb-12 w-full">
-        <div className="grid grid-cols-4 gap-4 max-w-md mx-auto">
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4 max-w-4xl mx-auto">
           {levels.map((level) => (
             <button
               key={level.id}
@@ -631,6 +973,9 @@ export const App: React.FC = () => {
       </div>
     </div>
   );
+
+  // ... (Win, GameOver, Modals logic remains the same)
+  // Re-use logic for Win/GameOver from previous but ensure w-full and centered 
 
   const renderWin = () => (
     <div className="flex flex-col items-center justify-center h-full px-6 relative z-50 bg-black/70 backdrop-blur-sm w-full">
@@ -705,378 +1050,10 @@ export const App: React.FC = () => {
     </div>
   );
 
-  // --- Modals ---
-
-  const HighscoreModal = () => {
-    const [leaderboardData, setLeaderboardData] = useState<HighScoreEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const fetchLeaderboard = async () => {
-        setLoading(true);
-        try {
-          // Fetch records. Supabase will return only valid rows.
-          const { data, error } = await supabase
-            .from('leaderboard')
-            .select('username, score')
-            .order('score', { ascending: false })
-            .limit(20);
-
-          if (error) throw error;
-          
-          if (data) {
-             setLeaderboardData(data);
-          }
-        } catch (error) {
-          console.error("Error fetching leaderboard:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      if (showHighscoreModal) {
-        fetchLeaderboard();
-      }
-    }, [showHighscoreModal]);
-
-    const getRankStyle = (idx: number) => {
-        if (idx === 0) return "bg-gradient-to-r from-yellow-200 to-yellow-400 border-yellow-500 ring-4 ring-yellow-200/50 shadow-xl scale-105 my-2";
-        if (idx === 1) return "bg-gradient-to-r from-gray-200 to-gray-300 border-gray-400 ring-2 ring-gray-200/50 shadow-lg";
-        if (idx === 2) return "bg-gradient-to-r from-orange-200 to-orange-300 border-orange-400 ring-2 ring-orange-200/50 shadow-lg";
-        return "bg-white border-blue-100 shadow-sm";
-    };
-
-    return (
-      <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-[#3b82f6]">
-          <button 
-            onClick={() => setShowHighscoreModal(false)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-          >
-            <X size={28} />
-          </button>
-
-          <Trophy size={48} className="text-yellow-400 fill-yellow-400 mb-2 drop-shadow-md" />
-          <h2 className="text-3xl font-black text-[#3b82f6] mb-6 font-display candy-text-sm text-center">{t.kingTitle}</h2>
-          
-          <div className="w-full bg-blue-50 rounded-2xl p-4 mb-6 border-2 border-blue-100 min-h-[300px] overflow-y-auto max-h-[50vh]">
-            {loading ? (
-               <div className="h-full flex flex-col items-center justify-center text-blue-300 gap-2 min-h-[200px]">
-                  <RefreshCw size={32} className="animate-spin" />
-                  <p className="font-bold">{t.loading}</p>
-               </div>
-            ) : leaderboardData.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-blue-300 gap-2 min-h-[200px]">
-                <Award size={32} />
-                <p className="font-bold">{t.noData}</p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {leaderboardData.map((entry, idx) => (
-                  <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${getRankStyle(idx)}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-white shrink-0 shadow-sm 
-                        ${idx === 0 ? 'bg-yellow-500 text-lg' : idx === 1 ? 'bg-gray-500' : idx === 2 ? 'bg-orange-600' : 'bg-blue-300'}`}>
-                        {idx + 1}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className={`text-sm font-black truncate max-w-[100px] uppercase ${idx === 0 ? 'text-yellow-900' : 'text-gray-700'}`}>
-                            {entry.username}
-                        </span>
-                        {idx === 0 && <span className="text-[9px] font-bold text-yellow-700 flex items-center gap-1"><Crown size={10} /> {t.kingTitle}</span>}
-                      </div>
-                    </div>
-                    <span className={`text-xl font-black ${idx === 0 ? 'text-yellow-800' : 'text-blue-600'}`}>{entry.score}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Button variant="secondary" fullWidth onClick={() => setShowHighscoreModal(false)}>{t.close}</Button>
-        </div>
-      </div>
-    );
-  };
-
-  const PermissionModal = () => (
-    <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop border-[8px] border-[#a855f7]">
-        <Bell size={60} className="text-[#a855f7] mb-4" />
-        <h2 className="text-2xl font-black text-[#a855f7] mb-4 font-display text-center">{t.permissionTitle}</h2>
-        <p className="text-gray-500 font-bold mb-6 text-center text-sm">{t.permissionDesc}</p>
-        <Button variant="start" fullWidth onClick={requestPermissions}>
-          {t.allow}
-        </Button>
-      </div>
-    </div>
-  );
-
-  const CharacterModal = () => (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-4 w-full max-w-md flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-purple-500 h-[80vh]">
-        <button 
-          onClick={() => setShowCharacterModal(false)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
-        >
-          <X size={28} />
-        </button>
-
-        <h2 className="text-2xl font-black text-purple-600 mb-2 font-display candy-text-sm text-center mt-2">{t.selectChar}</h2>
-        <div className="flex items-center gap-2 mb-4 bg-yellow-100 px-4 py-1 rounded-full border border-yellow-300">
-           <Coins size={16} className="text-yellow-600" />
-           <span className="font-bold text-yellow-800">{coins}</span>
-        </div>
-
-        <div className="w-full flex-1 overflow-y-auto grid grid-cols-4 gap-2 p-2">
-           {CHARACTERS.map((char) => {
-             const isUnlocked = unlockedCharacterIds.includes(char.id);
-             const isSelected = selectedCharacterId === char.id;
-             // Use Translation Lookup
-             const displayName = t.characters[char.id as keyof typeof t.characters]?.name || "Hero";
-
-             return (
-                <div 
-                  key={char.id} 
-                  onClick={() => isUnlocked ? selectCharacter(char.id) : unlockCharacter(char.id, char.price)}
-                  className={`
-                     aspect-[3/4] rounded-xl flex flex-col items-center justify-between p-1 relative transition-transform
-                     ${isSelected ? 'ring-4 ring-green-500 scale-105 z-10 shadow-lg' : ''}
-                     ${isUnlocked ? 'bg-gray-50 border border-gray-200 cursor-pointer active:scale-95' : 'bg-gray-200 border border-gray-300'}
-                  `}
-                >
-                   {isSelected && <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5"><Check size={10} className="text-white" /></div>}
-                   {!isUnlocked && (
-                     <div className="absolute inset-0 bg-black/40 rounded-xl flex flex-col items-center justify-center z-20">
-                        <LockIcon size={20} className="text-white mb-1" />
-                        <span className="text-white text-[10px] font-bold bg-black/50 px-1 rounded">{char.price}</span>
-                     </div>
-                   )}
-                   
-                   <div className={`w-full aspect-square ${char.color} rounded-lg flex items-center justify-center relative shadow-inner overflow-hidden`}>
-                      <span className="text-2xl z-10">{char.icon}</span>
-                      <span className="absolute bottom-1 right-1 text-xs">{char.accessory}</span>
-                      <div className="absolute top-[35%] left-[25%] w-1 h-1 bg-black rounded-full z-10"></div>
-                      <div className="absolute top-[35%] right-[25%] w-1 h-1 bg-black rounded-full z-10"></div>
-                   </div>
-                   
-                   <div className="text-center w-full">
-                      <div className="text-[9px] font-bold leading-tight truncate px-0.5">{displayName}</div>
-                   </div>
-                </div>
-             );
-           })}
-        </div>
-        
-        <div className="w-full bg-gray-50 p-3 rounded-xl mt-2 border border-gray-200">
-           {(() => {
-              const current = CHARACTERS.find(c => c.id === selectedCharacterId);
-              if (!current) return null;
-              
-              const displayName = t.characters[current.id as keyof typeof t.characters]?.name || "Hero";
-              const displayDesc = t.characters[current.id as keyof typeof t.characters]?.desc || "Hero";
-
-              return (
-                 <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 ${current.color} rounded-lg flex items-center justify-center text-2xl border-2 border-white shadow-sm`}>
-                       {current.icon}
-                    </div>
-                    <div className="flex flex-col">
-                       <span className="font-bold text-sm text-gray-800">{displayName}</span>
-                       <span className="text-xs text-purple-600 font-bold">{displayDesc}</span>
-                    </div>
-                 </div>
-              );
-           })()}
-        </div>
-
-      </div>
-    </div>
-  );
-
-  const ShopModal = () => (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-purple-500">
-        <button 
-          onClick={() => setShowShopModal(false)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <X size={28} />
-        </button>
-
-        <div className="flex items-center gap-2 mb-2">
-           <ShoppingCart size={32} className="text-purple-500" />
-           <h2 className="text-3xl font-black text-purple-500 font-display candy-text-sm">{t.shop}</h2>
-        </div>
-
-        <div className="bg-yellow-100 rounded-full px-6 py-2 border-4 border-yellow-300 flex items-center gap-2 mb-6">
-           <Coins size={24} className="text-yellow-500 fill-yellow-500" />
-           <span className="text-2xl font-black text-yellow-600">{coins}</span>
-        </div>
-        
-        <div className="w-full flex flex-col gap-3 mb-4 overflow-y-auto max-h-[50vh]">
-          <div className="w-full p-3 rounded-2xl bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 flex justify-between items-center shadow-sm">
-             <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center text-white shadow-md">
-                   <Video size={24} />
-                </div>
-                <div className="flex flex-col items-start">
-                   <span className="font-black text-green-700 leading-tight">{t.freeCoins}</span>
-                   <span className="text-xs font-bold text-green-600">{t.watchAd}</span>
-                </div>
-             </div>
-             <Button size="sm" onClick={watchAdForCoins} className="!px-3 !py-1 !bg-green-500 !border-green-700">
-               +50 🪙
-             </Button>
-          </div>
-
-          {[
-            { id: 'HAMMER' as const, name: t.hammer, icon: <Hammer />, price: PRICES.HAMMER, desc: t.hammerDesc, color: 'blue' },
-            { id: 'SHUFFLE' as const, name: t.shuffle, icon: <Shuffle />, price: PRICES.SHUFFLE, desc: t.shuffleDesc, color: 'emerald' },
-            { id: 'BOMB' as const, name: t.bomb, icon: <Bomb />, price: PRICES.BOMB, desc: t.bombDesc, color: 'rose' },
-          ].map(item => (
-             <div key={item.id} className="w-full p-3 rounded-2xl bg-gray-50 border-2 border-gray-200 flex justify-between items-center relative overflow-hidden">
-                <div className="flex items-center gap-3 relative z-10">
-                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md bg-${item.color}-500`}>
-                      {item.icon}
-                   </div>
-                   <div className="flex flex-col items-start">
-                      <span className="font-black text-gray-700 leading-tight">{item.name}</span>
-                      <span className="text-xs font-bold text-gray-400">{item.desc}</span>
-                      <span className="text-xs font-black text-purple-500 mt-0.5">{t.buy} {boosters[item.id]}</span>
-                   </div>
-                </div>
-                <Button 
-                   size="sm" 
-                   disabled={coins < item.price}
-                   onClick={() => buyBooster(item.id)} 
-                   className={coins < item.price ? "!bg-gray-400 !border-gray-600 opacity-50" : "!bg-yellow-400 !border-yellow-600 !text-yellow-900"}
-                >
-                   {item.price} 🪙
-                </Button>
-             </div>
-          ))}
-        </div>
-
-        <Button variant="secondary" fullWidth onClick={() => setShowShopModal(false)}>{t.close}</Button>
-      </div>
-    </div>
-  );
-
-  const RewardModal = () => (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-green-500">
-        <button 
-          onClick={() => setShowRewardModal(false)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <X size={28} />
-        </button>
-
-        <Gift size={64} className="text-green-500 mb-4 animate-bounce" />
-        <h2 className="text-3xl font-black text-green-500 mb-2 font-display candy-text-sm text-center">{t.rewardTitle}</h2>
-        
-        {canClaimReward() ? (
-           <>
-             <p className="text-gray-600 font-bold mb-6 text-center text-lg">+200 🪙</p>
-             <Button variant="primary" fullWidth onClick={claimReward}>
-               {t.claim}
-             </Button>
-           </>
-        ) : (
-           <div className="bg-gray-100 rounded-xl p-4 text-center w-full">
-              <p className="text-gray-500 font-bold mb-1">{t.claimed}</p>
-              <p className="text-gray-400 text-sm">{t.comeBack}</p>
-           </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const MusicModal = () => (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[40px] p-6 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop relative border-[8px] border-pink-500">
-        <button 
-          onClick={() => setShowMusicModal(false)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <X size={28} />
-        </button>
-
-        <div className="flex items-center gap-2 mb-6">
-           <Music size={32} className="text-pink-500" />
-           <h2 className="text-3xl font-black text-pink-500 font-display candy-text-sm">{t.music}</h2>
-        </div>
-
-        <div className="w-full flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
-           {MusicManager.tracks.map((track, idx) => (
-             <button
-               key={idx}
-               onClick={() => selectMusic(idx)}
-               className={`
-                  w-full p-3 rounded-xl flex items-center justify-between transition-all border-2
-                  ${currentTrackIdx === idx 
-                    ? 'bg-pink-100 border-pink-400 shadow-inner' 
-                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                  }
-               `}
-             >
-                <div className="flex items-center gap-3">
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentTrackIdx === idx ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                      {currentTrackIdx === idx ? <Volume2 size={16} /> : <span className="font-bold text-xs">{idx + 1}</span>}
-                   </div>
-                   <span className={`font-bold ${currentTrackIdx === idx ? 'text-pink-700' : 'text-gray-600'}`}>
-                      {t.tracks[track.name as keyof typeof t.tracks] || track.name}
-                   </span>
-                </div>
-                {currentTrackIdx === idx && <Check size={20} className="text-pink-500" />}
-             </button>
-           ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const UsernameModal = () => {
-    const [inputValue, setInputValue] = useState('');
-    
-    return (
-      <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-        <div className="bg-white rounded-[40px] p-8 w-full max-w-sm flex flex-col items-center shadow-2xl animate-pop border-[8px] border-[#fbbf24]">
-          <User size={60} className="text-[#fbbf24] mb-4" />
-          <h2 className="text-2xl font-black text-[#fbbf24] mb-4 font-display text-center">{t.inputName}</h2>
-          
-          <input 
-            type="text" 
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={t.inputPlaceholder}
-            className="w-full bg-gray-100 border-2 border-gray-300 rounded-xl px-4 py-3 text-lg font-bold mb-6 focus:outline-none focus:border-yellow-400 text-center uppercase"
-            maxLength={12}
-            autoFocus
-          />
-
-          <Button 
-            variant="start" 
-            fullWidth 
-            onClick={() => {
-              if (inputValue.trim().length > 0) {
-                saveUsername(inputValue);
-              } else {
-                SoundManager.play('invalid');
-              }
-            }}
-          >
-            {t.save}
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className={`w-screen h-screen overflow-hidden font-sans select-none text-slate-800 flex items-center justify-center`}>
-      <div className={`w-full h-full max-w-[600px] relative shadow-2xl overflow-hidden ${COLORS.background}`}>
+    // Changed: Moved background to outer div, removed max-w-[600px] from inner div
+    <div className={`w-screen h-screen overflow-hidden font-sans select-none text-slate-800 flex items-center justify-center ${COLORS.background}`}>
+      <div className={`w-full h-full relative overflow-hidden`}>
         {screen === 'SPLASH' && renderSplash()}
         {screen === 'HOME' && renderHome()}
         {screen === 'LEVEL_SELECT' && renderLevelSelect()}
@@ -1103,13 +1080,65 @@ export const App: React.FC = () => {
         {screen === 'WIN' && renderWin()}
         {screen === 'GAME_OVER' && renderGameOver()}
         
-        {showRewardModal && <RewardModal />}
-        {showHighscoreModal && <HighscoreModal />}
-        {showMusicModal && <MusicModal />}
-        {showShopModal && <ShopModal />}
-        {showUsernameModal && <UsernameModal />}
-        {showCharacterModal && <CharacterModal />}
-        {showPermissionModal && <PermissionModal />}
+        {showRewardModal && (
+          <RewardModal 
+            onClaim={claimReward} 
+            onClose={() => setShowRewardModal(false)}
+            canClaim={canClaimReward()}
+            t={t}
+          />
+        )}
+        {showHighscoreModal && (
+          <HighscoreModal 
+            onClose={() => setShowHighscoreModal(false)}
+            t={t}
+          />
+        )}
+        {showMusicModal && (
+          <MusicModal 
+            onClose={() => setShowMusicModal(false)}
+            currentTrackIdx={currentTrackIdx}
+            onSelect={selectMusic}
+            t={t}
+          />
+        )}
+        {showShopModal && (
+          <ShopModal 
+            onClose={() => setShowShopModal(false)}
+            coins={coins}
+            boosters={boosters}
+            onBuy={buyBooster}
+            onWatchAd={watchAdForCoins}
+            t={t}
+          />
+        )}
+        {showUsernameModal && (
+          <UsernameModal 
+            onSave={saveUsername}
+            currentName={username}
+            t={t}
+            onClose={() => setShowUsernameModal(false)}
+          />
+        )}
+        {showCharacterModal && (
+          <CharacterModal 
+            onClose={() => setShowCharacterModal(false)}
+            characters={CHARACTERS}
+            unlockedIds={unlockedCharacterIds}
+            selectedId={selectedCharacterId}
+            coins={coins}
+            onUnlock={unlockCharacter}
+            onSelect={selectCharacter}
+            t={t}
+          />
+        )}
+        {showPermissionModal && (
+          <PermissionModal 
+            onRequest={requestPermissions}
+            t={t}
+            onClose={() => setShowPermissionModal(false)}
+          />
+        )}
       </div>
     </div>
   );
